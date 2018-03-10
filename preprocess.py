@@ -24,10 +24,20 @@ def parse_line(line):
     line = line.lower()
     
     # Store as a list of words
-    words = line.split()
+    raw_words = line.split()
+    
+    clean_words = []
+    for word in raw_words:
+        # Remove quotation marks (apostrophe at the beginning or end of a word)
+        if word[0] == "'":
+            word = word[1:]
+        # Unless it's actually part of a "word" that Shakespeare uses
+        if word[-1] == "'" and word != "t'" and word != "th'":
+            word = word[:-1]
+        clean_words.append(word)       
     
     # Return the line as a list of words
-    return words
+    return clean_words
 
 
 def parse_file(filename):
@@ -171,6 +181,7 @@ def main():
     # Train an HMM and generate a 14-line sonnet
     hmm10 = HMM.unsupervised_HMM(all_lines, 10, 100)
     hmm10.save("hmm10.txt")
+    #hmm10 = HMM.load("hmm10.txt")
     
     # Generate three quatrains
     for i in range(3):

@@ -411,17 +411,46 @@ class HiddenMarkovModel:
     
     
     def save(self, filename):
+        ''' Save the HMM to file. '''
+        
         file = open(filename, 'w')
         
+        # Save the parameters
         file.write(str(self.L) + "\t" + str(self.D) + "\n")
         
+        # Save the transition matrix
         for i in range(len(self.A)):
             file.write("\t".join(str(x) for x in self.A[i]) + "\n")
-            
+        
+        # Save the observation matrix
         for i in range(len(self.O)):
             file.write("\t".join(str(x) for x in self.O[i]) + "\n")
             
         file.close()
+        
+
+def load(filename):
+    ''' Load an HMM from file. '''
+    
+    A = []
+    O = []
+    
+    file = open(filename, 'r')
+    
+    # Read the parameters
+    L, D = [int(x) for x in file.readline().strip().split('\t')]
+
+    # Read the transition matrix
+    for i in range(L):
+        A.append([float(x) for x in file.readline().strip().split('\t')])
+
+    # Read the observation matrix
+    for i in range(L):
+        O.append([float(x) for x in file.readline().strip().split('\t')])
+        
+    file.close()
+    
+    return HiddenMarkovModel(A, O)
             
 
 def unsupervised_HMM(X, n_states, N_iters):
