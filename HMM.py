@@ -10,6 +10,7 @@ Author(s):    Andrew Kang, Garret Sullivan
 Organization: California Institute of Technology
 """
 
+import numpy as np
 import random
 
 class HiddenMarkovModel:
@@ -269,7 +270,7 @@ class HiddenMarkovModel:
                     self.O[curr][xt] = O_num[curr][xt] / O_den[curr]
 
 
-    def generate_line(self, syllables, syllable_dict):
+    def generate_line(self, syllables, syllable_dict, reverse=False, initial=None):
         '''
         Generates an emission with a set number of syllables, assuming that the 
         starting state is chosen uniformly at random. 
@@ -277,23 +278,75 @@ class HiddenMarkovModel:
         Arguments:
             syllables:     Number of syllables in the emission to generate.
             syllable_dict: Information about the syllables of each word.
+            reverse:       Whether to perform generaation forwards or backwards.
+            initial:       The initial observation in the generated output.
 
         Returns:
             emission:      The randomly generated emission as a list.
 
             states:        The randomly generated states as a list.
         '''
-
+        
         emission = []
-        state = random.choice(range(self.L))
         states = []
+        state = None
         
         normal_syllable_count = [0]
         end_syllable_count = [0]
+        
+        # Reverse the transitions matrix if we're generating backwards
+        transitions = self.A
+        if reverse:
+            #transitions = list(map(list, zip(*self.A)))
+            transitions = np.array(transitions).T.tolist()
+            
+            # Renormalize each row of the transitions matrix
+            for i in range(len(transitions)):
+                transitions[i] = [transitions[i][j]/sum(transitions[i]) for j in range(len(transitions[i]))] 
+        
+        if initial != None:
+            # We have the initial word for this line already
+            emission.append(initial)
+            
+            normal_syllable_count = syllable_dict[initial]['normal']
+            end_syllable_count = normal_syllable_count + syllable_dict[initial]['end'] 
+            
+            # Find the probability that a given state would generate this word
+            prob_states = list(map(list, zip(*self.O)))[initial]
+            prob_states = [prob_states[i]/sum(prob_states) for i in range(len(prob_states))]
+            
+            # Sample the initial state for this word
+            rand_var = random.uniform(0, 1)
+            initial_state = 0
 
+            while rand_var > 0:
+                rand_var -= prob_states[initial_state]
+                initial_state += 1
+
+            initial_state -= 1
+            states.append(initial_state)
+            
+            # Sample the next state as well using the initial state
+            rand_var = random.uniform(0, 1)
+            next_state = 0
+
+            while rand_var > 0:
+                rand_var -= transitions[initial_state][next_state]
+                next_state += 1
+
+            next_state -= 1
+            state = next_state
+        else:
+            # We don't have anything; just pick an initial state
+            state = random.choice(range(self.L))
+                
+        # Generate words until we reach the requested number of syllables
         while syllables not in end_syllable_count:
-            # Append state.
-            states.append(state)
+            # Add the state to the beginning or end of the state list
+            if reverse:
+                states.insert(0, state)
+            else:
+                states.append(state)
 
             # Sample next observation.
             rand_var = random.uniform(0, 1)
@@ -315,7 +368,12 @@ class HiddenMarkovModel:
                 next_obs += 1
 
             next_obs -= 1
-            emission.append(next_obs)
+            
+            # Add the emission to the beginning or end of the emission list
+            if reverse:
+                emission.insert(0, next_obs)
+            else:
+                emission.append(next_obs)
             
             # Keep track of how many syllables this line could have
             obs_syllables_normal = syllable_dict[next_obs]['normal']
@@ -343,14 +401,28 @@ class HiddenMarkovModel:
             next_state = 0
 
             while rand_var > 0:
-                rand_var -= self.A[state][next_state]
+                rand_var -= transitions[state][next_state]
                 next_state += 1
 
             next_state -= 1
             state = next_state
 
         return emission, states
-
+    
+    
+    def save(self, filename):
+        file = open(filename, 'w')
+        
+        file.write(str(self.L) + "\t" + str(self.D) + "\n")
+        
+        for i in range(len(self.A)):
+            file.write("\t".join(str(x) for x in self.A[i]) + "\n")
+            
+        for i in range(len(self.O)):
+            file.write("\t".join(str(x) for x in self.O[i]) + "\n")
+            
+        file.close()
+            
 
 def unsupervised_HMM(X, n_states, N_iters):
     '''

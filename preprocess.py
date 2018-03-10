@@ -9,6 +9,7 @@ Author(s):    Dennis Lam, Garret Sullivan
 Organization: California Institute of Technology
 """
 
+import random
 import HMM
 
 def parse_line(line):
@@ -16,7 +17,7 @@ def parse_line(line):
     
     # Remove unwanted characters
     for char in line:
-        if char in ",.!?;:":
+        if char in ",.!?;:()":
             line = line.replace(char, '')
 
     # Convert to all-lowercase
@@ -38,6 +39,7 @@ def parse_file(filename):
     quatrain_lines = []
     volta_lines = []
     couplet_lines = []
+    rhymes = []
     
     obs_counter = 0
     obs_word_to_int = {}
@@ -87,9 +89,37 @@ def parse_file(filename):
             
     # Close the file containing the poems
     file_in.close()
-
-    # Return the lists of lines
-    return (quatrain_lines, volta_lines, couplet_lines, obs_word_to_int, obs_int_to_word)
+    
+    # Add the rhyming words to a list
+    raw_rhymes = []
+    
+    quad_lines = quatrain_lines + volta_lines
+    for i in range(0, len(quad_lines), 4):
+        raw_rhymes.append(set([quad_lines[i][-1], quad_lines[i+2][-1]]))
+        raw_rhymes.append(set([quad_lines[i+1][-1], quad_lines[i+3][-1]]))
+        
+    for i in range(0, len(couplet_lines), 2):
+        raw_rhymes.append(set([couplet_lines[i][-1], couplet_lines[i+1][-1]]))
+        
+    # Combine the pairs of rhyming words into sets of rhyming words
+    for raw_rhyme in raw_rhymes:
+        found_rhyme = False
+        
+        # Check if a matching rhyme is already in the list
+        for rhyme_set in rhymes:
+            if len(rhyme_set.intersection(raw_rhyme)) != 0:
+                # Found a matching rhyme
+                rhymes.append(rhyme_set.union(raw_rhyme))
+                rhymes.remove(rhyme_set)
+                found_rhyme = True
+                break
+        
+        # If we didn't find a matching rhyme, add it to the list directly
+        if not found_rhyme:
+            rhymes.append(raw_rhyme)
+            
+    # Return the lines, the maps, and the rhymes
+    return (quatrain_lines, volta_lines, couplet_lines, obs_word_to_int, obs_int_to_word, rhymes)
 
 
 def parse_syllables(filename, word_to_int_map):
@@ -131,36 +161,38 @@ def parse_syllables(filename, word_to_int_map):
 
 
 def main():
-    """ Do some testing here! """
-    
     # Parse the sonnets
-    quatrain_lines, volta_lines, couplet_lines, word_to_int_map, int_to_word_map = parse_file("data\\shakespeare.txt")
+    quatrain_lines, volta_lines, couplet_lines, word_to_int_map, int_to_word_map, rhymes = parse_file("data\\shakespeare.txt")
     all_lines = quatrain_lines + volta_lines + couplet_lines
     
     # Parse the syllable data
     syllable_dictionary = parse_syllables("data\\Syllable_dictionary.txt", word_to_int_map)
     
-    '''
-    # Print the converted lines
-    converted_lines = []
-    for all_line in all_lines:
-        converted_line = []
-        for word in all_line:
-            converted_line.append(word_map[word])
-        converted_lines.append(converted_line)
-    
-    # Print the number of lines in each category
-    print("Number of quatrain lines:", len(quatrain_lines))
-    print("Number of volta lines:", len(volta_lines))
-    print("Number of couplet lines:", len(couplet_lines))
-    '''
-    
     # Train an HMM and generate a 14-line sonnet
     hmm10 = HMM.unsupervised_HMM(all_lines, 10, 100)
-    for i in range(14):
-        emission, states = hmm10.generate_line(10, syllable_dictionary)
+    hmm10.save("hmm10.txt")
+    
+    # Generate three quatrains
+    for i in range(3):
+        # Select rhyming words for this quatrain
+        sample_rhymes = random.sample(rhymes, 2)
+        rhyme_a = random.sample(sample_rhymes[0], 2)
+        rhyme_b = random.sample(sample_rhymes[1], 2)
+        initials = [rhyme_a[0], rhyme_b[0], rhyme_a[1], rhyme_b[1]]
+        
+        # Generate each line backwards using the rhyming word as the initial word
+        for i in range(4):
+            emission, states = hmm10.generate_line(10, syllable_dictionary, reverse=True, initial=initials[i])
+            line = [int_to_word_map[i] for i in emission]
+            print(' '.join(line).capitalize())
+            
+    # Generate one couplet
+    rhyme_c = random.sample(random.sample(rhymes, 1)[0], 2)
+    for i in range(2):
+        emission, states = hmm10.generate_line(10, syllable_dictionary, reverse=True, initial=rhyme_c[i])
         line = [int_to_word_map[i] for i in emission]
-        print(' '.join(line).capitalize())
+        print('  ' + ' '.join(line).capitalize())
+    
     
 if __name__ == "__main__":
     main()
