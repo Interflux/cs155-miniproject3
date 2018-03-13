@@ -1,12 +1,25 @@
 """
-Filename:     train.py
+Filename:     train_rnn.py
 Version:      -
 Date:         2018/3/12 (last modified)
 
 Description:  Processes data for RNN training and trains an RNN model for text
               prediction.
 
-Author(s):    https://github.com/vivshaw/, slightly modified by Dennis Lam
+Author(s):    https://github.com/vivshaw/, very slightly modified by Dennis Lam
+
+Note #1:      This code is from the shakespeare-LSTM repository which can be
+              found here: https://github.com/vivshaw/shakespeare-LSTM. Thank you 
+              to the author "vivshaw" for making this code publicly available.
+              
+Note #2:      Please not in the definition of the lambda function that is passed
+              to the Lambda layer, the temperature parameter must be set using
+              a numerical value and not a variable. This is because TensorFlow
+              will save the variable name but not its declaration or value when
+              saving the model to the "model.yaml" file, resulting in an error
+              when attempting to load this model into another program (e.g., 
+              the GenerativeNetwork class defined in "generate_rnn.py" in this
+              repository).
 
 """
 
@@ -23,7 +36,6 @@ print("Loaded a corpus of {0} characters".format(len(corpus)))
 lstm_size = 200
 num_epochs = 200
 sequence_length = 40
-temperature = 1.50
 
 # Get a unique identifier for each char in the corpus, then make some dicts to ease encoding and decoding
 chars = sorted(list(set(corpus)))
@@ -67,7 +79,7 @@ print("Let's build a brain!")
 model = Sequential()
 model.add(LSTM(lstm_size, input_shape=(sentence_length, num_chars)))
 model.add(Dense(num_chars))
-model.add(Lambda(lambda x: x / temperature))
+model.add(Lambda(lambda x: x / 1.50)) # Temperature value must be set here, without the use of variables
 model.add(Activation('softmax'))
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
