@@ -63,7 +63,7 @@ def generate_input_files(filename):
     # Open the file containing the poems
     file_in = open(filename, 'r')
 
-    # Open the file to contain
+    # Open the file to contain the sonnet lines
     file_out_quatrain = open("quatrain_lines.txt", 'w')
     file_out_volta = open("volta_lines.txt", 'w')
     file_out_couplet = open("couplet_lines.txt", 'w')
