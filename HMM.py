@@ -270,6 +270,53 @@ class HiddenMarkovModel:
                     self.O[curr][xt] = O_num[curr][xt] / O_den[curr]
 
 
+    def generate_emission(self, M):
+        '''
+        Generates an emission of length M, assuming that the starting state
+        is chosen uniformly at random. 
+
+        Arguments:
+            M:          Length of the emission to generate.
+
+        Returns:
+            emission:   The randomly generated emission as a list.
+
+            states:     The randomly generated states as a list.
+        '''
+
+        emission = []
+        state = random.choice(range(self.L))
+        states = []
+
+        for t in range(M):
+            # Append state.
+            states.append(state)
+
+            # Sample next observation.
+            rand_var = random.uniform(0, 1)
+            next_obs = 0
+
+            while rand_var > 0:
+                rand_var -= self.O[state][next_obs]
+                next_obs += 1
+
+            next_obs -= 1
+            emission.append(next_obs)
+
+            # Sample next state.
+            rand_var = random.uniform(0, 1)
+            next_state = 0
+
+            while rand_var > 0:
+                rand_var -= self.A[state][next_state]
+                next_state += 1
+
+            next_state -= 1
+            state = next_state
+
+        return emission, states
+
+
     def generate_line(self, syllables, syllable_dict, reverse=False, initial=None):
         '''
         Generates an emission with a set number of syllables, assuming that the 
@@ -408,7 +455,7 @@ class HiddenMarkovModel:
             state = next_state
 
         return emission, states
-    
+            
     
     def save(self, filename):
         ''' Save the HMM to file. '''
@@ -500,3 +547,4 @@ def unsupervised_HMM(X, n_states, N_iters):
     HMM.unsupervised_learning(X, N_iters)
 
     return HMM
+

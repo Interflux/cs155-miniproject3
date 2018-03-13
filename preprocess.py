@@ -11,6 +11,7 @@ Organization: California Institute of Technology
 
 import random
 import HMM
+import HMM_helper
 
 def parse_line(line):
     """ Parses a line of the sonnets. """
@@ -203,6 +204,10 @@ def main():
         emission, states = hmm10.generate_line(10, syllable_dictionary, reverse=True, initial=rhyme_c[i])
         line = [int_to_word_map[i] for i in emission]
         print('  ' + ' '.join(line).capitalize())
+        
+    # Visualize the matrices and the states of the HMM
+    HMM_helper.visualize_sparsities(hmm10, O_max_cols=100, O_vmax=1)
+    HMM_helper.states_to_wordclouds(hmm10, word_to_int_map)
     
     
 if __name__ == "__main__":
