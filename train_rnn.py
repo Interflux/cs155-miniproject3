@@ -12,7 +12,7 @@ Note #1:      This code is from the shakespeare-LSTM repository which can be
               found here: https://github.com/vivshaw/shakespeare-LSTM. Thank you 
               to the author "vivshaw" for making this code publicly available.
               
-Note #2:      Please not in the definition of the lambda function that is passed
+Note #2:      Please note in the definition of the lambda function that is passed
               to the Lambda layer, the temperature parameter must be set using
               a numerical value and not a variable. This is because TensorFlow
               will save the variable name but not its declaration or value when
